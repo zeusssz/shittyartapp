@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Autism Art (Very Cool)</title>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #f0f0f0 25%, #c0c0c0);
+        }
+        canvas {
+            border: 2px solid #000;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            background-color: #fff;
+        }
+        #controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 20px;
+            padding: 10px;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.8);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+        #controls input,
+        #controls button,
+        #controls select {
+            padding: 5px 10px;
+            border: 1px solid #000;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Autism</h1>
+    <div id="controls">
+        <label for="colorPicker">Color:</label>
+        <input type="color" id="colorPicker" value="#000000">
+        <label for="brushSize">Brush Size:</label>
+        <input type="number" id="brushSize" value="5" min="1" max="50">
+        <label for="shapeSelect">Shape:</label>
+        <select id="shapeSelect">
+            <option value="free">Free Draw</option>
+            <option value="line">Line</option>
+            <option value="rectangle">Rectangle</option>
+            <option value="circle">Circle</option>
+        </select>
+        <button id="undoButton">Undo</button>
+        <button id="clearButton">Clear</button>
+        <button id="saveButton">Save</button>
+    </div>
+    <canvas id="drawingCanvas" width="800" height="600"></canvas>
+    <script>
+        const canvas = document.getElementById('drawingCanvas');
+        const ctx = canvas.getContext('2d');
+        let painting = false;
+        let shapes = [];
+        let startX, startY;
+
+        function startPosition(e) {
+            painting = true;
+            startX = e.clientX - canvas.offsetLeft;
+            startY = e.clientY - canvas.offsetTop;
+            draw(e);
+        }
+
+        function endPosition() {
+            painting = false;
+            ctx.beginPath();
+            shapes.push(ctx.getImageData(0, 0, canvas.width, canvas.height));
+        }
+
+        function draw(e) {
+            if (!painting) return;
+            const shape = document.getElementById('shapeSelect').value;
+            ctx.lineWidth = document.getElementById('brushSize').value;
+            ctx.strokeStyle = document.getElementById('colorPicker').value;
+            ctx.lineCap = 'round';
+
+            if (shape === 'free') {
+                ctx.lineTo(e.clientX - canvas.offsetLeft, e.clientY - canvas.offsetTop);
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.moveTo(e.clientX - canvas.offsetLeft, e.clientY - canvas.offsetTop);
+            } else {
+                ctx.putImageData(shapes[shapes.length - 1], 0, 0);
+                const endX = e.clientX - canvas.offsetLeft;
+                const endY = e.clientY - canvas.offsetTop;
+
+                if (shape === 'line') {
+                    ctx.beginPath();
+                    ctx.moveTo(startX, startY);
+                    ctx.lineTo(endX, endY);
+                    ctx.stroke();
+                } else if (shape === 'rectangle') {
+                    ctx.strokeRect(startX, startY, endX - startX, endY - startY);
+                } else if (shape === 'circle') {
+                    ctx.beginPath();
+                    const radius = Math.sqrt(Math.pow(endX - startX, 2) + Math.pow(endY - startY, 2));
+                    ctx.arc(startX, startY, radius, 0, Math.PI * 2);
+                    ctx.stroke();
+                }
+            }
+        }
+
+        canvas.addEventListener('mousedown', startPosition);
+        canvas.addEventListener('mouseup', endPosition);
+        canvas.addEventListener('mousemove', draw);
+
+        document.getElementById('clearButton').addEventListener('click', () => {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            shapes = [];
+        });
+
+        document.getElementById('saveButton').addEventListener('click', () => {
+            const link = document.createElement('a');
+            link.download = 'canvas_image.png';
+            link.href = canvas.toDataURL();
+            link.click();
+        });
+
+        document.getElementById('undoButton').addEventListener('click', () => {
+            if (shapes.length > 0) {
+                shapes.pop();
+                ctx.putImageData(shapes[shapes.length - 1] || ctx.createImageData(canvas.width, canvas.height), 0, 0);
+            }
+        });
+
+        shapes.push(ctx.getImageData(0, 0, canvas.width, canvas.height));
+    </script>
+</body>
+</html>
