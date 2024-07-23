@@ -123,7 +123,7 @@
 
         document.getElementById('saveButton').addEventListener('click', () => {
             const link = document.createElement('a');
-            link.download = 'art.png';
+            link.download = 'art.jpg';
             link.href = canvas.toDataURL();
             link.click();
         });
