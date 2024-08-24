@@ -128,41 +128,111 @@ body {
         </aside>
     </div>
 
-    <script>// JavaScript to handle layer actions
+    <script>
+// Get references to important DOM elements
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+const layersList = document.getElementById('layers-list');
+const pencilTool = document.getElementById('pencil');
+const eraserTool = document.getElementById('eraser');
+const colorTool = document.getElementById('color');
+let currentLayer, isDrawing = false, tool = 'pencil';
 
-document.getElementById('add-layer').addEventListener('click', () => {
-    const layerList = document.getElementById('layers-list');
+// Layer management
+document.getElementById('add-layer').addEventListener('click', addLayer);
+
+function addLayer() {
     const layerItem = document.createElement('div');
     layerItem.classList.add('layer-item');
     layerItem.innerHTML = `
-        <span>Layer ${layerList.children.length + 1}</span>
+        <span>Layer ${layersList.children.length + 1}</span>
         <button class="hide-layer">👁️</button>
     `;
-    layerList.appendChild(layerItem);
+    layersList.appendChild(layerItem);
     attachLayerEvent(layerItem);
-});
+    selectLayer(layerItem);
+}
 
 function attachLayerEvent(layerItem) {
     layerItem.querySelector('.hide-layer').addEventListener('click', function () {
         this.classList.toggle('hidden');
         if (this.classList.contains('hidden')) {
             this.textContent = '🚫';
-            // Add logic to hide the layer on the canvas
+            hideLayer(currentLayer);
         } else {
             this.textContent = '👁️';
-            // Add logic to show the layer on the canvas
+            showLayer(currentLayer);
         }
     });
 
     layerItem.addEventListener('click', () => {
-        const layers = document.querySelectorAll('.layer-item');
-        layers.forEach(layer => layer.classList.remove('active'));
-        layerItem.classList.add('active');
+        selectLayer(layerItem);
     });
 }
 
+function selectLayer(layerItem) {
+    const layers = document.querySelectorAll('.layer-item');
+    layers.forEach(layer => layer.classList.remove('active'));
+    layerItem.classList.add('active');
+    currentLayer = layerItem;
+}
+
+function hideLayer(layer) {
+    // Hide the canvas layer
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+}
+
+function showLayer(layer) {
+    // Show the canvas layer again
+    ctx.globalCompositeOperation = 'source-over';
+}
+
 // Initialize with one default layer
-document.getElementById('add-layer').click();
+addLayer();
+
+// Tool Selection
+pencilTool.addEventListener('click', () => {
+    tool = 'pencil';
+});
+
+eraserTool.addEventListener('click', () => {
+    tool = 'eraser';
+});
+
+colorTool.addEventListener('click', () => {
+    // Change the color for the pencil tool
+    const color = prompt("Enter a color (name, hex, rgb, etc.):", "#000000");
+    ctx.strokeStyle = color;
+});
+
+// Drawing functionality
+canvas.addEventListener('mousedown', startDrawing);
+canvas.addEventListener('mousemove', draw);
+canvas.addEventListener('mouseup', stopDrawing);
+canvas.addEventListener('mouseout', stopDrawing);
+
+function startDrawing(event) {
+    isDrawing = true;
+    ctx.beginPath();
+    ctx.moveTo(event.offsetX, event.offsetY);
+}
+
+function draw(event) {
+    if (!isDrawing) return;
+    ctx.lineCap = 'round';
+    ctx.lineWidth = tool === 'pencil' ? 2 : 10;
+    ctx.globalCompositeOperation = tool === 'pencil' ? 'source-over' : 'destination-out';
+
+    ctx.lineTo(event.offsetX, event.offsetY);
+    ctx.stroke();
+    ctx.moveTo(event.offsetX, event.offsetY);
+}
+
+function stopDrawing() {
+    isDrawing = false;
+    ctx.closePath();
+}
+
 </script>
 </body>
 </html>
