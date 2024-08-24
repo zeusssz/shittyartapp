@@ -4,255 +4,165 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Canvas Art Tool</title>
-    <style>
-        body {
-            margin: 0;
-            display: flex;
-            height: 100vh;
-            background-color: #2C2C2C;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            color: #FFFFFF;
-        }
-        #toolbar {
-            width: 60px;
-            background-color: #333;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            padding: 10px 0;
-            gap: 15px;
-        }
-        #toolbar button {
-            background-color: transparent;
-            border: none;
-            padding: 10px;
-            cursor: pointer;
-            filter: brightness(0) invert(1);
-        }
-        #toolbar button:hover {
-            background-color: #444;
-            border-radius: 5px;
-        }
-        #canvasContainer {
-            flex: 1;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            padding: 20px;
-        }
-        canvas {
-            border: 1px solid #555;
-            background-color: #333;
-        }
-        #layersContainer {
-            width: 200px;
-            background-color: #333;
-            display: flex;
-            flex-direction: column;
-            padding: 10px;
-        }
-        #layersContainer h2 {
-            margin: 0;
-            padding: 10px 0;
-            text-align: center;
-            font-size: 16px;
-            border-bottom: 1px solid #444;
-        }
-        .layer-container {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 5px;
-            border: 1px solid #555;
-            margin: 5px 0;
-            background-color: #444;
-        }
-        .layer-container button {
-            background-color: #666;
-            border: none;
-            color: #fff;
-            padding: 5px;
-            margin-left: 5px;
-            cursor: pointer;
-        }
-        .layer-container button:hover {
-            background-color: #777;
-        }
-        #controls {
-            display: flex;
-            justify-content: center;
-            padding: 10px;
-            background-color: #333;
-            border-top: 1px solid #444;
-        }
-        #controls input[type="color"],
-        #controls input[type="range"],
-        #controls button {
-            margin: 0 10px;
-            padding: 5px;
-            background-color: #444;
-            border: 1px solid #555;
-            color: #fff;
-        }
-        #controls button {
-            cursor: pointer;
-        }
-        #controls button:hover {
-            background-color: #555;
-        }
-    </style>
 </head>
+    <styles>
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background-color: #2b2b2b;
+    color: white;
+    display: flex;
+    height: 100vh;
+    overflow: hidden;
+}
+
+.container {
+    display: flex;
+    flex: 1;
+}
+
+.toolbar {
+    width: 50px;
+    background-color: #1e1e1e;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 10px 0;
+    border-right: 1px solid #333;
+}
+
+.tool {
+    padding: 10px;
+    margin-bottom: 10px;
+    cursor: pointer;
+    font-size: 1.5rem;
+    transition: background-color 0.3s;
+}
+
+.tool:hover {
+    background-color: #555;
+}
+
+.canvas-container {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: #3b3b3b;
+}
+
+#canvas {
+    background-color: #ffffff;
+    border: 1px solid #ccc;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+}
+
+.layers-panel {
+    width: 200px;
+    background-color: #1e1e1e;
+    padding: 10px;
+    border-left: 1px solid #333;
+    display: flex;
+    flex-direction: column;
+}
+
+.layers-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+#layers-list {
+    flex: 1;
+    overflow-y: auto;
+}
+
+.layer-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 5px;
+    background-color: #333;
+    margin-bottom: 5px;
+    cursor: pointer;
+}
+
+.layer-item.active {
+    background-color: #555;
+}
+
+.layer-item button {
+    background: none;
+    border: none;
+    color: white;
+    cursor: pointer;
+    font-size: 1rem;
+}
+
+.layer-item button:hover {
+    color: #ccc;
+}
+</styles>
 <body>
+    <div class="container">
+        <aside class="toolbar">
+            <div class="tool" id="pencil">✏️</div>
+            <div class="tool" id="eraser">🧽</div>
+            <div class="tool" id="color">🎨</div>
+            <div class="tool" id="layers-toggle">🗂️</div>
+        </aside>
 
-<div id="toolbar">
-    <button><img src="https://img.icons8.com/ios-filled/50/ffffff/pencil.png" alt="Draw" width="24"></button>
-    <button><img src="https://img.icons8.com/ios-filled/50/ffffff/eraser.png" alt="Erase" width="24"></button>
-    <button><img src="https://img.icons8.com/ios-filled/50/ffffff/paint-palette.png" alt="Color" width="24"></button>
-    <button><img src="https://img.icons8.com/ios-filled/50/ffffff/layered-paper.png" alt="Layers" width="24"></button>
-</div>
+        <main class="canvas-container">
+            <canvas id="canvas" width="800" height="600"></canvas>
+        </main>
 
-<div id="canvasContainer">
-    <canvas id="canvas" width="800" height="600"></canvas>
-</div>
+        <aside class="layers-panel">
+            <div class="layers-header">
+                <span>Layers</span>
+                <button id="add-layer">➕</button>
+            </div>
+            <div id="layers-list">
+                <!-- Layers will be dynamically added here -->
+            </div>
+        </aside>
+    </div>
 
-<div id="layersContainer">
-    <h2>Layers</h2>
-    <div id="layers"></div>
-    <button id="addLayer">+ Add Layer</button>
-</div>
+    <script>// JavaScript to handle layer actions
 
-<div id="controls">
-    <input type="color" id="colorPicker" value="#ffffff">
-    <input type="range" id="brushSize" min="1" max="50" value="5">
-    <input type="range" id="opacity" min="0" max="1" step="0.01" value="1">
-    <button id="clearLayer">Clear Layer</button>
-    <button id="save">Save</button>
-</div>
+document.getElementById('add-layer').addEventListener('click', () => {
+    const layerList = document.getElementById('layers-list');
+    const layerItem = document.createElement('div');
+    layerItem.classList.add('layer-item');
+    layerItem.innerHTML = `
+        <span>Layer ${layerList.children.length + 1}</span>
+        <button class="hide-layer">👁️</button>
+    `;
+    layerList.appendChild(layerItem);
+    attachLayerEvent(layerItem);
+});
 
-<script>
-    let layers = [];
-    let activeLayerIndex = 0;
-    let drawing = false;
-    let startX, startY;
-
-    function createLayer() {
-        const canvas = document.createElement('canvas');
-        canvas.width = 800;
-        canvas.height = 600;
-        const ctx = canvas.getContext('2d');
-        document.getElementById('canvasContainer').appendChild(canvas);
-
-        canvas.addEventListener('mousedown', startDrawing);
-        canvas.addEventListener('mousemove', draw);
-        canvas.addEventListener('mouseup', stopDrawing);
-        canvas.addEventListener('mouseleave', stopDrawing);
-
-        const layer = { canvas, ctx, hidden: false };
-        layers.push(layer);
-        updateLayerUI();
-
-        return layer;
-    }
-
-    function updateLayerUI() {
-        const layersDiv = document.getElementById('layers');
-        layersDiv.innerHTML = '';
-
-        layers.forEach((layer, index) => {
-            const layerContainer = document.createElement('div');
-            layerContainer.classList.add('layer-container');
-
-            const layerButton = document.createElement('button');
-            layerButton.textContent = `Layer ${index + 1}`;
-            layerButton.onclick = () => {
-                activeLayerIndex = index;
-                updateLayerUI();
-            };
-            layerContainer.appendChild(layerButton);
-
-            const toggleButton = document.createElement('button');
-            toggleButton.textContent = layer.hidden ? 'Show' : 'Hide';
-            toggleButton.onclick = () => {
-                layer.hidden = !layer.hidden;
-                layer.canvas.style.display = layer.hidden ? 'none' : 'block';
-                updateLayerUI();
-            };
-            layerContainer.appendChild(toggleButton);
-
-            const removeButton = document.createElement('button');
-            removeButton.textContent = 'Remove';
-            removeButton.onclick = () => {
-                layers.splice(index, 1);
-                layer.canvas.remove();
-                if (activeLayerIndex >= layers.length) activeLayerIndex = layers.length - 1;
-                updateLayerUI();
-            };
-            layerContainer.appendChild(removeButton);
-
-            layersDiv.appendChild(layerContainer);
-        });
-    }
-
-    function startDrawing(e) {
-        drawing = true;
-        const layer = layers[activeLayerIndex];
-        const rect = layer.canvas.getBoundingClientRect();
-        startX = e.clientX - rect.left;
-        startY = e.clientY - rect.top;
-    }
-
-    function draw(e) {
-        if (!drawing) return;
-        const layer = layers[activeLayerIndex];
-        const rect = layer.canvas.getBoundingClientRect();
-        const ctx = layer.ctx;
-
-        ctx.lineWidth = document.getElementById('brushSize').value;
-        ctx.strokeStyle = document.getElementById('colorPicker').value;
-        ctx.globalAlpha = document.getElementById('opacity').value;
-        ctx.lineCap = 'round';
-
-        ctx.beginPath();
-        ctx.moveTo(startX, startY);
-        ctx.lineTo(e.clientX - rect.left, e.clientY - rect.top);
-        ctx.stroke();
-
-        startX = e.clientX - rect.left;
-        startY = e.clientY - rect.top;
-    }
-
-    function stopDrawing() {
-        drawing = false;
-    }
-
-    document.getElementById('addLayer').addEventListener('click', createLayer);
-
-    document.getElementById('clearLayer').addEventListener('click', () => {
-        const ctx = layers[activeLayerIndex].ctx;
-        ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+function attachLayerEvent(layerItem) {
+    layerItem.querySelector('.hide-layer').addEventListener('click', function () {
+        this.classList.toggle('hidden');
+        if (this.classList.contains('hidden')) {
+            this.textContent = '🚫';
+            // Add logic to hide the layer on the canvas
+        } else {
+            this.textContent = '👁️';
+            // Add logic to show the layer on the canvas
+        }
     });
 
-    document.getElementById('save').addEventListener('click', () => {
-        const finalCanvas = document.createElement('canvas');
-        finalCanvas.width = 800;
-        finalCanvas.height = 600;
-        const finalCtx = finalCanvas.getContext('2d');
-
-        layers.forEach(layer => {
-            if (!layer.hidden) {
-                finalCtx.drawImage(layer.canvas, 0, 0);
-            }
-        });
-
-        const link = document.createElement('a');
-        link.download = 'canvas_art.png';
-        link.href = finalCanvas.toDataURL();
-        link.click();
+    layerItem.addEventListener('click', () => {
+        const layers = document.querySelectorAll('.layer-item');
+        layers.forEach(layer => layer.classList.remove('active'));
+        layerItem.classList.add('active');
     });
+}
 
-    // Create the initial layer
-    createLayer();
+// Initialize with one default layer
+document.getElementById('add-layer').click();
 </script>
-
 </body>
 </html>
