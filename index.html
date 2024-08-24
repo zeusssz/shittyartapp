@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Autism Art (Very Cool)</title>
+    <title>Canvas Art Tool</title>
     <style>
         body {
             display: flex;
@@ -13,216 +13,167 @@
             height: 100vh;
             margin: 0;
             font-family: Arial, sans-serif;
-            background: linear-gradient(135deg, #f0f0f0 25%, #c0c0c0);
-        }
-        canvas {
-            border: 2px solid #000;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-            background-color: transparent;
-            position: absolute;
         }
         #canvasContainer {
             position: relative;
             width: 800px;
             height: 600px;
+            border: 1px solid #000;
+        }
+        canvas {
+            position: absolute;
+            left: 0;
+            top: 0;
         }
         #controls {
+            margin-top: 20px;
             display: flex;
-            flex-wrap: wrap;
-            align-items: center;
             gap: 10px;
-            margin: 20px;
-            padding: 10px;
-            border-radius: 8px;
-            background: rgba(255, 255, 255, 0.8);
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-        }
-        #controls input,
-        #controls button,
-        #controls select {
-            padding: 5px 10px;
-            border: 1px solid #000;
-            border-radius: 4px;
-            font-size: 14px;
         }
         #layers {
+            margin-top: 20px;
             display: flex;
             flex-direction: column;
-            gap: 10px;
-        }
-        #layers button {
-            margin: 5px;
-            padding: 5px 10px;
-            font-size: 12px;
+            gap: 5px;
         }
     </style>
 </head>
 <body>
-    <div id="controls">
-        <label for="colorPicker">Color:</label>
-        <input type="color" id="colorPicker" value="#000000">
-        <label for="brushSize">Brush Size:</label>
-        <input type="number" id="brushSize" value="5" min="1" max="50">
-        <label for="shapeSelect">Shape:</label>
-        <select id="shapeSelect">
-            <option value="free">Free Draw</option>
-            <option value="line">Line</option>
-            <option value="rectangle">Rectangle</option>
-            <option value="circle">Circle</option>
-        </select>
-        <label for="opacity">Opacity:</label>
-        <input type="range" id="opacity" value="100" min="0" max="100">
-        <button id="undoButton">Undo</button>
-        <button id="clearButton">Clear</button>
-        <button id="saveButton">Save</button>
-        <button id="addLayerButton">Add Layer</button>
-    </div>
-    <div id="canvasContainer">
-        <canvas id="drawingCanvas" width="800" height="600"></canvas>
-    </div>
-    <div id="layers"></div>
-    <script>
-        let layers = [];
-        let activeLayerIndex = 0;
-        let shapes = [[]];
 
-        function createLayer() {
-            const newCanvas = document.createElement('canvas');
-            newCanvas.width = 800;
-            newCanvas.height = 600;
-            newCanvas.style.opacity = 1;
-            document.getElementById('canvasContainer').appendChild(newCanvas);
-            const layer = {
-                canvas: newCanvas,
-                ctx: newCanvas.getContext('2d'),
-                hidden: false,
+<h1>Canvas Art Tool</h1>
+
+<div id="controls">
+    <input type="color" id="colorPicker" value="#000000">
+    <input type="range" id="brushSize" min="1" max="50" value="5">
+    <input type="range" id="opacity" min="0" max="1" step="0.01" value="1">
+    <button id="addLayer">Add Layer</button>
+    <button id="clearLayer">Clear Layer</button>
+    <button id="save">Save</button>
+</div>
+
+<div id="canvasContainer"></div>
+
+<div id="layers"></div>
+
+<script>
+    let layers = [];
+    let activeLayerIndex = 0;
+    let drawing = false;
+    let startX, startY;
+
+    function createLayer() {
+        const canvas = document.createElement('canvas');
+        canvas.width = 800;
+        canvas.height = 600;
+        const ctx = canvas.getContext('2d');
+        document.getElementById('canvasContainer').appendChild(canvas);
+
+        canvas.addEventListener('mousedown', startDrawing);
+        canvas.addEventListener('mousemove', draw);
+        canvas.addEventListener('mouseup', stopDrawing);
+        canvas.addEventListener('mouseleave', stopDrawing);
+
+        const layer = { canvas, ctx, hidden: false };
+        layers.push(layer);
+        updateLayerUI();
+
+        return layer;
+    }
+
+    function updateLayerUI() {
+        const layersDiv = document.getElementById('layers');
+        layersDiv.innerHTML = '';
+
+        layers.forEach((layer, index) => {
+            const layerButton = document.createElement('button');
+            layerButton.textContent = `Layer ${index + 1} ${layer.hidden ? '(Hidden)' : ''}`;
+            layerButton.onclick = () => {
+                activeLayerIndex = index;
+                updateLayerUI();
             };
-            layers.push(layer);
-            updateLayerButtons();
-            return layer;
-        }
+            layersDiv.appendChild(layerButton);
 
-        function updateLayerButtons() {
-            const layersDiv = document.getElementById('layers');
-            layersDiv.innerHTML = '';
-            layers.forEach((layer, index) => {
-                const layerButton = document.createElement('button');
-                layerButton.textContent = `Layer ${index + 1} ${layer.hidden ? '(Hidden)' : ''}`;
-                layerButton.onclick = () => {
-                    activeLayerIndex = index;
-                    updateLayerButtons();
-                };
-                layersDiv.appendChild(layerButton);
+            const toggleButton = document.createElement('button');
+            toggleButton.textContent = layer.hidden ? 'Show' : 'Hide';
+            toggleButton.onclick = () => {
+                layer.hidden = !layer.hidden;
+                layer.canvas.style.display = layer.hidden ? 'none' : 'block';
+                updateLayerUI();
+            };
+            layersDiv.appendChild(toggleButton);
 
-                const toggleButton = document.createElement('button');
-                toggleButton.textContent = layer.hidden ? 'Show' : 'Hide';
-                toggleButton.onclick = () => {
-                    layer.hidden = !layer.hidden;
-                    layer.canvas.style.display = layer.hidden ? 'none' : 'block';
-                    updateLayerButtons();
-                };
-                layersDiv.appendChild(toggleButton);
-
-                const removeButton = document.createElement('button');
-                removeButton.textContent = 'Remove';
-                removeButton.onclick = () => {
-                    layers.splice(index, 1);
-                    document.getElementById('canvasContainer').removeChild(layer.canvas);
-                    if (activeLayerIndex >= index) activeLayerIndex = Math.max(0, activeLayerIndex - 1);
-                    updateLayerButtons();
-                };
-                layersDiv.appendChild(removeButton);
-            });
-        }
-
-        function startPosition(e) {
-            const layer = layers[activeLayerIndex];
-            painting = true;
-            startX = e.clientX - layer.canvas.offsetLeft;
-            startY = e.clientY - layer.canvas.offsetTop;
-            draw(e);
-        }
-
-        function endPosition() {
-            painting = false;
-            ctx.beginPath();
-            shapes[activeLayerIndex].push(layers[activeLayerIndex].ctx.getImageData(0, 0, layers[activeLayerIndex].canvas.width, layers[activeLayerIndex].canvas.height));
-        }
-
-        function draw(e) {
-            if (!painting) return;
-            const shape = document.getElementById('shapeSelect').value;
-            const opacity = document.getElementById('opacity').value / 100;
-            const layer = layers[activeLayerIndex];
-            const ctx = layer.ctx;
-            ctx.lineWidth = document.getElementById('brushSize').value;
-            ctx.strokeStyle = document.getElementById('colorPicker').value;
-            ctx.globalAlpha = opacity;
-            ctx.lineCap = 'round';
-
-            if (shape === 'free') {
-                ctx.lineTo(e.clientX - layer.canvas.offsetLeft, e.clientY - layer.canvas.offsetTop);
-                ctx.stroke();
-                ctx.beginPath();
-                ctx.moveTo(e.clientX - layer.canvas.offsetLeft, e.clientY - layer.canvas.offsetTop);
-            } else {
-                ctx.putImageData(shapes[activeLayerIndex][shapes[activeLayerIndex].length - 1] || ctx.createImageData(ctx.canvas.width, ctx.canvas.height), 0, 0);
-                const endX = e.clientX - layer.canvas.offsetLeft;
-                const endY = e.clientY - layer.canvas.offsetTop;
-
-                if (shape === 'line') {
-                    ctx.beginPath();
-                    ctx.moveTo(startX, startY);
-                    ctx.lineTo(endX, endY);
-                    ctx.stroke();
-                } else if (shape === 'rectangle') {
-                    ctx.strokeRect(startX, startY, endX - startX, endY - startY);
-                } else if (shape === 'circle') {
-                    ctx.beginPath();
-                    const radius = Math.sqrt(Math.pow(endX - startX, 2) + Math.pow(endY - startY, 2));
-                    ctx.arc(startX, startY, radius, 0, Math.PI * 2);
-                    ctx.stroke();
-                }
-            }
-        }
-
-        document.getElementById('addLayerButton').addEventListener('click', () => {
-            createLayer();
-            shapes.push([]);
+            const removeButton = document.createElement('button');
+            removeButton.textContent = 'Remove';
+            removeButton.onclick = () => {
+                layers.splice(index, 1);
+                layer.canvas.remove();
+                if (activeLayerIndex >= layers.length) activeLayerIndex = layers.length - 1;
+                updateLayerUI();
+            };
+            layersDiv.appendChild(removeButton);
         });
+    }
 
-        document.getElementById('clearButton').addEventListener('click', () => {
-            const ctx = layers[activeLayerIndex].ctx;
-            ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-            shapes[activeLayerIndex] = [];
-        });
+    function startDrawing(e) {
+        drawing = true;
+        const layer = layers[activeLayerIndex];
+        const rect = layer.canvas.getBoundingClientRect();
+        startX = e.clientX - rect.left;
+        startY = e.clientY - rect.top;
+    }
 
-        document.getElementById('saveButton').addEventListener('click', () => {
-            const finalCanvas = document.createElement('canvas');
-            finalCanvas.width = 800;
-            finalCanvas.height = 600;
-            const finalCtx = finalCanvas.getContext('2d');
-            layers.forEach(layer => {
-                if (!layer.hidden) finalCtx.drawImage(layer.canvas, 0, 0);
-            });
-            const link = document.createElement('a');
-            link.download = 'art.png';
-            link.href = finalCanvas.toDataURL();
-            link.click();
-        });
+    function draw(e) {
+        if (!drawing) return;
+        const layer = layers[activeLayerIndex];
+        const rect = layer.canvas.getBoundingClientRect();
+        const ctx = layer.ctx;
 
-        document.getElementById('undoButton').addEventListener('click', () => {
-            if (shapes[activeLayerIndex].length > 0) {
-                shapes[activeLayerIndex].pop();
-                const ctx = layers[activeLayerIndex].ctx;
-                ctx.putImageData(shapes[activeLayerIndex][shapes[activeLayerIndex].length - 1] || ctx.createImageData(ctx.canvas.width, ctx.canvas.height), 0, 0);
+        ctx.lineWidth = document.getElementById('brushSize').value;
+        ctx.strokeStyle = document.getElementById('colorPicker').value;
+        ctx.globalAlpha = document.getElementById('opacity').value;
+        ctx.lineCap = 'round';
+
+        ctx.beginPath();
+        ctx.moveTo(startX, startY);
+        ctx.lineTo(e.clientX - rect.left, e.clientY - rect.top);
+        ctx.stroke();
+
+        startX = e.clientX - rect.left;
+        startY = e.clientY - rect.top;
+    }
+
+    function stopDrawing() {
+        drawing = false;
+    }
+
+    document.getElementById('addLayer').addEventListener('click', createLayer);
+
+    document.getElementById('clearLayer').addEventListener('click', () => {
+        const ctx = layers[activeLayerIndex].ctx;
+        ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+    });
+
+    document.getElementById('save').addEventListener('click', () => {
+        const finalCanvas = document.createElement('canvas');
+        finalCanvas.width = 800;
+        finalCanvas.height = 600;
+        const finalCtx = finalCanvas.getContext('2d');
+
+        layers.forEach(layer => {
+            if (!layer.hidden) {
+                finalCtx.drawImage(layer.canvas, 0, 0);
             }
         });
 
-        const initialLayer = createLayer();
-        initialLayer.canvas.addEventListener('mousedown', startPosition);
-        initialLayer.canvas.addEventListener('mouseup', endPosition);
-        initialLayer.canvas.addEventListener('mousemove', draw);
-    </script>
+        const link = document.createElement('a');
+        link.download = 'canvas_art.png';
+        link.href = finalCanvas.toDataURL();
+        link.click();
+    });
+
+    // Create the initial layer
+    createLayer();
+</script>
+
 </body>
 </html>
