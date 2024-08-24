@@ -111,6 +111,19 @@ body {
             <div class="tool" id="eraser">🧽</div>
             <div class="tool" id="color">🎨</div>
             <div class="tool" id="layers-toggle">🗂️</div>
+            <div class="tool" id="save">💾</div>
+<div class="tool" id="import">
+    <input type="file" id="import" style="display: none;" accept="image/*">
+    📁
+</div>
+<div class="tool">
+    Brush Size:
+    <input type="range" id="brush-size" min="1" max="20" value="2">
+</div>
+<div class="tool">
+    Erase Size:
+    <input type="range" id="erase-size" min="5" max="50" value="10">
+</div>
         </aside>
 
         <main class="canvas-container">
@@ -136,7 +149,11 @@ const layersList = document.getElementById('layers-list');
 const pencilTool = document.getElementById('pencil');
 const eraserTool = document.getElementById('eraser');
 const colorTool = document.getElementById('color');
-let currentLayer, isDrawing = false, tool = 'pencil';
+const saveTool = document.getElementById('save');
+const importTool = document.getElementById('import');
+const brushSizeTool = document.getElementById('brush-size');
+const eraseSizeTool = document.getElementById('erase-size');
+let currentLayer, isDrawing = false, tool = 'pencil', brushSize = 2, eraseSize = 10;
 
 // Layer management
 document.getElementById('add-layer').addEventListener('click', addLayer);
@@ -205,6 +222,15 @@ colorTool.addEventListener('click', () => {
     ctx.strokeStyle = color;
 });
 
+// Brush and Erase Size Selection
+brushSizeTool.addEventListener('change', (event) => {
+    brushSize = event.target.value;
+});
+
+eraseSizeTool.addEventListener('change', (event) => {
+    eraseSize = event.target.value;
+});
+
 // Drawing functionality
 canvas.addEventListener('mousedown', startDrawing);
 canvas.addEventListener('mousemove', draw);
@@ -220,7 +246,7 @@ function startDrawing(event) {
 function draw(event) {
     if (!isDrawing) return;
     ctx.lineCap = 'round';
-    ctx.lineWidth = tool === 'pencil' ? 2 : 10;
+    ctx.lineWidth = tool === 'pencil' ? brushSize : eraseSize;
     ctx.globalCompositeOperation = tool === 'pencil' ? 'source-over' : 'destination-out';
 
     ctx.lineTo(event.offsetX, event.offsetY);
@@ -232,6 +258,31 @@ function stopDrawing() {
     isDrawing = false;
     ctx.closePath();
 }
+
+// Save Canvas as Image
+saveTool.addEventListener('click', () => {
+    const dataURL = canvas.toDataURL('image/png');
+    const link = document.createElement('a');
+    link.href = dataURL;
+    link.download = 'canvas-art.png';
+    link.click();
+});
+
+// Import Image onto Canvas
+importTool.addEventListener('change', (event) => {
+    const file = event.target.files[0];
+    const reader = new FileReader();
+
+    reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        };
+        img.src = e.target.result;
+    };
+
+    reader.readAsDataURL(file);
+});
 
 </script>
 </body>
