@@ -6,63 +6,127 @@
     <title>Canvas Art Tool</title>
     <style>
         body {
+            margin: 0;
+            display: flex;
+            height: 100vh;
+            background-color: #2C2C2C;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: #FFFFFF;
+        }
+        #toolbar {
+            width: 60px;
+            background-color: #333;
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: center;
-            height: 100vh;
-            margin: 0;
-            font-family: Arial, sans-serif;
+            padding: 10px 0;
+            gap: 15px;
+        }
+        #toolbar button {
+            background-color: transparent;
+            border: none;
+            padding: 10px;
+            cursor: pointer;
+            filter: brightness(0) invert(1);
+        }
+        #toolbar button:hover {
+            background-color: #444;
+            border-radius: 5px;
         }
         #canvasContainer {
-            position: relative;
-            width: 800px;
-            height: 600px;
-            border: 1px solid #000;
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
         }
         canvas {
-            position: absolute;
-            left: 0;
-            top: 0;
-        }
-        #controls {
-            margin-top: 20px;
-            display: flex;
-            gap: 10px;
+            border: 1px solid #555;
+            background-color: #333;
         }
         #layersContainer {
-            display: flex;
-            margin-top: 20px;
-            gap: 20px;
-        }
-        #layers {
+            width: 200px;
+            background-color: #333;
             display: flex;
             flex-direction: column;
-            gap: 10px;
+            padding: 10px;
         }
-        #layerButtons {
+        #layersContainer h2 {
+            margin: 0;
+            padding: 10px 0;
+            text-align: center;
+            font-size: 16px;
+            border-bottom: 1px solid #444;
+        }
+        .layer-container {
             display: flex;
-            flex-direction: column;
-            gap: 5px;
+            justify-content: space-between;
+            align-items: center;
+            padding: 5px;
+            border: 1px solid #555;
+            margin: 5px 0;
+            background-color: #444;
+        }
+        .layer-container button {
+            background-color: #666;
+            border: none;
+            color: #fff;
+            padding: 5px;
+            margin-left: 5px;
+            cursor: pointer;
+        }
+        .layer-container button:hover {
+            background-color: #777;
+        }
+        #controls {
+            display: flex;
+            justify-content: center;
+            padding: 10px;
+            background-color: #333;
+            border-top: 1px solid #444;
+        }
+        #controls input[type="color"],
+        #controls input[type="range"],
+        #controls button {
+            margin: 0 10px;
+            padding: 5px;
+            background-color: #444;
+            border: 1px solid #555;
+            color: #fff;
+        }
+        #controls button {
+            cursor: pointer;
+        }
+        #controls button:hover {
+            background-color: #555;
         }
     </style>
 </head>
 <body>
 
-<h1>Canvas Art Tool</h1>
+<div id="toolbar">
+    <button><img src="https://img.icons8.com/ios-filled/50/ffffff/pencil.png" alt="Draw" width="24"></button>
+    <button><img src="https://img.icons8.com/ios-filled/50/ffffff/eraser.png" alt="Erase" width="24"></button>
+    <button><img src="https://img.icons8.com/ios-filled/50/ffffff/paint-palette.png" alt="Color" width="24"></button>
+    <button><img src="https://img.icons8.com/ios-filled/50/ffffff/layered-paper.png" alt="Layers" width="24"></button>
+</div>
 
-<div id="controls">
-    <input type="color" id="colorPicker" value="#000000">
-    <input type="range" id="brushSize" min="1" max="50" value="5">
-    <input type="range" id="opacity" min="0" max="1" step="0.01" value="1">
-    <button id="addLayer">Add Layer</button>
-    <button id="clearLayer">Clear Layer</button>
-    <button id="save">Save</button>
+<div id="canvasContainer">
+    <canvas id="canvas" width="800" height="600"></canvas>
 </div>
 
 <div id="layersContainer">
-    <div id="canvasContainer"></div>
+    <h2>Layers</h2>
     <div id="layers"></div>
+    <button id="addLayer">+ Add Layer</button>
+</div>
+
+<div id="controls">
+    <input type="color" id="colorPicker" value="#ffffff">
+    <input type="range" id="brushSize" min="1" max="50" value="5">
+    <input type="range" id="opacity" min="0" max="1" step="0.01" value="1">
+    <button id="clearLayer">Clear Layer</button>
+    <button id="save">Save</button>
 </div>
 
 <script>
@@ -106,9 +170,6 @@
             };
             layerContainer.appendChild(layerButton);
 
-            const layerButtonsDiv = document.createElement('div');
-            layerButtonsDiv.id = 'layerButtons';
-
             const toggleButton = document.createElement('button');
             toggleButton.textContent = layer.hidden ? 'Show' : 'Hide';
             toggleButton.onclick = () => {
@@ -116,7 +177,7 @@
                 layer.canvas.style.display = layer.hidden ? 'none' : 'block';
                 updateLayerUI();
             };
-            layerButtonsDiv.appendChild(toggleButton);
+            layerContainer.appendChild(toggleButton);
 
             const removeButton = document.createElement('button');
             removeButton.textContent = 'Remove';
@@ -126,9 +187,8 @@
                 if (activeLayerIndex >= layers.length) activeLayerIndex = layers.length - 1;
                 updateLayerUI();
             };
-            layerButtonsDiv.appendChild(removeButton);
+            layerContainer.appendChild(removeButton);
 
-            layerContainer.appendChild(layerButtonsDiv);
             layersDiv.appendChild(layerContainer);
         });
     }
