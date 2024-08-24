@@ -18,10 +18,17 @@
         canvas {
             border: 2px solid #000;
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-            background-color: #fff;
+            background-color: transparent;
+            position: absolute;
+        }
+        #canvasContainer {
+            position: relative;
+            width: 800px;
+            height: 600px;
         }
         #controls {
             display: flex;
+            flex-wrap: wrap;
             align-items: center;
             gap: 10px;
             margin: 20px;
@@ -38,10 +45,19 @@
             border-radius: 4px;
             font-size: 14px;
         }
+        #layers {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        #layers button {
+            margin: 5px;
+            padding: 5px 10px;
+            font-size: 12px;
+        }
     </style>
 </head>
 <body>
-    <h1>Autism</h1>
     <div id="controls">
         <label for="colorPicker">Color:</label>
         <input type="color" id="colorPicker" value="#000000">
@@ -54,47 +70,105 @@
             <option value="rectangle">Rectangle</option>
             <option value="circle">Circle</option>
         </select>
+        <label for="opacity">Opacity:</label>
+        <input type="range" id="opacity" value="100" min="0" max="100">
         <button id="undoButton">Undo</button>
         <button id="clearButton">Clear</button>
         <button id="saveButton">Save</button>
+        <button id="addLayerButton">Add Layer</button>
     </div>
-    <canvas id="drawingCanvas" width="800" height="600"></canvas>
+    <div id="canvasContainer">
+        <canvas id="drawingCanvas" width="800" height="600"></canvas>
+    </div>
+    <div id="layers"></div>
     <script>
-        const canvas = document.getElementById('drawingCanvas');
-        const ctx = canvas.getContext('2d');
-        let painting = false;
-        let shapes = [];
-        let startX, startY;
+        let layers = [];
+        let activeLayerIndex = 0;
+        let shapes = [[]];
+
+        function createLayer() {
+            const newCanvas = document.createElement('canvas');
+            newCanvas.width = 800;
+            newCanvas.height = 600;
+            newCanvas.style.opacity = 1;
+            document.getElementById('canvasContainer').appendChild(newCanvas);
+            const layer = {
+                canvas: newCanvas,
+                ctx: newCanvas.getContext('2d'),
+                hidden: false,
+            };
+            layers.push(layer);
+            updateLayerButtons();
+            return layer;
+        }
+
+        function updateLayerButtons() {
+            const layersDiv = document.getElementById('layers');
+            layersDiv.innerHTML = '';
+            layers.forEach((layer, index) => {
+                const layerButton = document.createElement('button');
+                layerButton.textContent = `Layer ${index + 1} ${layer.hidden ? '(Hidden)' : ''}`;
+                layerButton.onclick = () => {
+                    activeLayerIndex = index;
+                    updateLayerButtons();
+                };
+                layersDiv.appendChild(layerButton);
+
+                const toggleButton = document.createElement('button');
+                toggleButton.textContent = layer.hidden ? 'Show' : 'Hide';
+                toggleButton.onclick = () => {
+                    layer.hidden = !layer.hidden;
+                    layer.canvas.style.display = layer.hidden ? 'none' : 'block';
+                    updateLayerButtons();
+                };
+                layersDiv.appendChild(toggleButton);
+
+                const removeButton = document.createElement('button');
+                removeButton.textContent = 'Remove';
+                removeButton.onclick = () => {
+                    layers.splice(index, 1);
+                    document.getElementById('canvasContainer').removeChild(layer.canvas);
+                    if (activeLayerIndex >= index) activeLayerIndex = Math.max(0, activeLayerIndex - 1);
+                    updateLayerButtons();
+                };
+                layersDiv.appendChild(removeButton);
+            });
+        }
 
         function startPosition(e) {
+            const layer = layers[activeLayerIndex];
             painting = true;
-            startX = e.clientX - canvas.offsetLeft;
-            startY = e.clientY - canvas.offsetTop;
+            startX = e.clientX - layer.canvas.offsetLeft;
+            startY = e.clientY - layer.canvas.offsetTop;
             draw(e);
         }
 
         function endPosition() {
             painting = false;
             ctx.beginPath();
-            shapes.push(ctx.getImageData(0, 0, canvas.width, canvas.height));
+            shapes[activeLayerIndex].push(layers[activeLayerIndex].ctx.getImageData(0, 0, layers[activeLayerIndex].canvas.width, layers[activeLayerIndex].canvas.height));
         }
 
         function draw(e) {
             if (!painting) return;
             const shape = document.getElementById('shapeSelect').value;
+            const opacity = document.getElementById('opacity').value / 100;
+            const layer = layers[activeLayerIndex];
+            const ctx = layer.ctx;
             ctx.lineWidth = document.getElementById('brushSize').value;
             ctx.strokeStyle = document.getElementById('colorPicker').value;
+            ctx.globalAlpha = opacity;
             ctx.lineCap = 'round';
 
             if (shape === 'free') {
-                ctx.lineTo(e.clientX - canvas.offsetLeft, e.clientY - canvas.offsetTop);
+                ctx.lineTo(e.clientX - layer.canvas.offsetLeft, e.clientY - layer.canvas.offsetTop);
                 ctx.stroke();
                 ctx.beginPath();
-                ctx.moveTo(e.clientX - canvas.offsetLeft, e.clientY - canvas.offsetTop);
+                ctx.moveTo(e.clientX - layer.canvas.offsetLeft, e.clientY - layer.canvas.offsetTop);
             } else {
-                ctx.putImageData(shapes[shapes.length - 1], 0, 0);
-                const endX = e.clientX - canvas.offsetLeft;
-                const endY = e.clientY - canvas.offsetTop;
+                ctx.putImageData(shapes[activeLayerIndex][shapes[activeLayerIndex].length - 1] || ctx.createImageData(ctx.canvas.width, ctx.canvas.height), 0, 0);
+                const endX = e.clientX - layer.canvas.offsetLeft;
+                const endY = e.clientY - layer.canvas.offsetTop;
 
                 if (shape === 'line') {
                     ctx.beginPath();
@@ -112,30 +186,43 @@
             }
         }
 
-        canvas.addEventListener('mousedown', startPosition);
-        canvas.addEventListener('mouseup', endPosition);
-        canvas.addEventListener('mousemove', draw);
+        document.getElementById('addLayerButton').addEventListener('click', () => {
+            createLayer();
+            shapes.push([]);
+        });
 
         document.getElementById('clearButton').addEventListener('click', () => {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            shapes = [];
+            const ctx = layers[activeLayerIndex].ctx;
+            ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+            shapes[activeLayerIndex] = [];
         });
 
         document.getElementById('saveButton').addEventListener('click', () => {
+            const finalCanvas = document.createElement('canvas');
+            finalCanvas.width = 800;
+            finalCanvas.height = 600;
+            const finalCtx = finalCanvas.getContext('2d');
+            layers.forEach(layer => {
+                if (!layer.hidden) finalCtx.drawImage(layer.canvas, 0, 0);
+            });
             const link = document.createElement('a');
-            link.download = 'art.jpg';
-            link.href = canvas.toDataURL();
+            link.download = 'art.png';
+            link.href = finalCanvas.toDataURL();
             link.click();
         });
 
         document.getElementById('undoButton').addEventListener('click', () => {
-            if (shapes.length > 0) {
-                shapes.pop();
-                ctx.putImageData(shapes[shapes.length - 1] || ctx.createImageData(canvas.width, canvas.height), 0, 0);
+            if (shapes[activeLayerIndex].length > 0) {
+                shapes[activeLayerIndex].pop();
+                const ctx = layers[activeLayerIndex].ctx;
+                ctx.putImageData(shapes[activeLayerIndex][shapes[activeLayerIndex].length - 1] || ctx.createImageData(ctx.canvas.width, ctx.canvas.height), 0, 0);
             }
         });
 
-        shapes.push(ctx.getImageData(0, 0, canvas.width, canvas.height));
+        const initialLayer = createLayer();
+        initialLayer.canvas.addEventListener('mousedown', startPosition);
+        initialLayer.canvas.addEventListener('mouseup', endPosition);
+        initialLayer.canvas.addEventListener('mousemove', draw);
     </script>
 </body>
 </html>
